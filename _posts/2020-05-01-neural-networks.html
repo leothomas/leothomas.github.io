@@ -1,0 +1,200 @@
+---
+layout: post
+title: "Back-propagation and gradient descent from scratch"
+subtitle: "An attempt at better understanding Neural Networks"
+date: 2020-05-01 10:21:12 -0500
+background: '/img/posts/bg-posts.jpg'
+---
+
+<p>
+    While trying to learn more about neural networks, I had trouble understanding back-propagation
+    and gradient descent, because most online articles tend to explain the matrix operations that
+    implement these concepts rather than the conepts themselves. While matrix operations are indeed
+    the most effective implementations of back-propagation and gradient descent, they're not
+    very easy to intuitively understand. As an excrcise, I decided to implement a neural netwok
+    using Python classes in order to see how these calculations are executed at the neuron level.
+</p>
+<p>
+    I also thought it would be interesting to see just how much slower neural networks written in
+    OOP are, compared to the standard matrix approach.
+</p>
+
+<h3>Neurons and Synapses </h3>
+<p>
+    All neural networks are composed of neurons, which are organized into layers, and synapses which
+    connect the neurons from one layer to the neurons of the next:
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/neural-networks/neural-network-structure.webp"
+        alt="Basic Neural Network">
+    <span class="caption text-muted">Visual representation of a basic neural network made up of
+        neurons (circles) and synapses (arrows). The neurons labelled A,B,C, and D are part of
+        the input layer, those in red are part of the hidden layer and the neuron in green
+        is part of the output layer.
+    </span>
+</p>
+<p>
+    I defined neurons with the following attributes and methods:
+    <code>
+{%highlight python%}
+class Neuron:
+    """ 
+    Basic block of neural network. Takes input from the previous 
+    layer (or the input data) and provides output to the next layer 
+    (or outputs the network's prediction). Updates weights based on 
+    it's contribution to the error in the network's prediction.
+
+    ...
+
+    Attributes:
+    ----------
+    output : float 
+        Value to be used as input by the next layer neurons or as the
+        network's prediction (if in the last layer).
+
+    bias : float
+        Used to determine the neuron's output.
+        b in the equation y = mx + b, where mx is the weighted 
+        average of the previous layer neurons' outputs and y is the 
+        neuron's activation.
+
+    learning_rate : float  
+        Modulates how much bias and weights are updated by. Smaller
+        values will converge more slowly and more precisely but are
+        also more susceptible to local minima (non-optimal 
+        solutions). Start large and reduce proportionally to training
+        error (~0.1 to ~0.001).
+
+    synapses_in : [Synapse] | None
+        Pointers to the previous layer's neurons (None if the neuron
+        is part of the network's input layer).
+
+    synapses_out : [Synapse] | None
+        Pointers to the next layer's neurons (None if the neuron is
+        part of the network's output layer).
+
+    Methods :
+    -------
+    activate(network_input: float | None) -> None
+        Calculates the weighted average of the previous layer's 
+        neurons plus its own bias (y = mx + b).
+
+    transfer(x : float) -> float
+        Restricts the neuron's activation, calculated above, to the 
+        range [0,1].
+
+    calculate_error(expected: float | None) -> None
+        Calculates contribution from this neuron to the error in the 
+        network's prediction.
+
+    transfer_derivative(x : float) -> float
+        Derivative of the function used to restriction the activation
+        to [0,1]. Used to calculate the neuron's contribution to the 
+        network's error.
+
+    update_weights() -> None
+        Updates the weights and biases of this neuron according to 
+        its error contribution calculated above.
+    """     
+        
+{%endhighlight%}
+</code>
+</p>
+<p>
+    My initial approach to connecting the neurons was to use a doubly-linked list structure, where
+    each neuron has a list of output neurons and a list of input neurons. Since the connections
+    never need to be modified, the burden of swapping pointers in a doubly-linked list is not a
+    concern.
+</p>
+<p>
+    However each connection between two neurons is assigned a weight, which needs to be
+    accessed both from the input neuron (during forward propagation) and the output neuron (during
+    backwards propagation). The doubly-linked list structure would have forced me to keep track of
+    these weights in both the input neuron and the output neuron.
+</p>
+<p>
+    Updating a weight would have required accessing it in both the input neuron and the output
+    neuron. Considering the large quantity of weight update events that occur when training the
+    network, this approach would have been both computationally intensive and more error prone, in
+    addition to making the code harder to maintain.
+</p>
+<p>
+
+    In order to avoid these issues, I created a separate class for synapses, defined as follows:
+</p>
+<p>
+    <code>
+{%highlight python%}
+class Synapse:
+    """
+    Connector between two neurons of different layers
+    ... 
+    
+    Attributes:
+    -----------
+    neuron_in: Neuron 
+        Neuron feeding input into this synapse.
+    neuron_out: Neuron
+        Neuron which receives input from this synapse.
+    weight: float
+        Weight of the synapse. Modulates how much of the input into 
+        the synapse is passed on to the output neuron.
+    """
+    ...
+    {%endhighlight%}
+</code>
+</p>
+<p>
+    I built the network by instantiating layers of neurons, and connecting each neuron within one
+    layer to all the neurons of the next layer:
+</p>
+<p>
+    <code>
+{%highlight python%}
+for neuron in self.__layers[layer_index]:
+    for target_neuron in self.__layers[layer_index + 1]:
+
+        synapse = Synapse(
+            neuron_in=neuron,
+            neuron_out=target_neuron
+        )
+
+        neuron.synapses_out.append(synapse)
+        target_neuron.synapses_in.append(synapse)
+
+{%endhighlight%}
+    </code>
+</p>
+<p>
+    The synapse is added to both the output synapses of the input neuron and the input synapses
+    of the output neuron. This way, during forward propagation, the weight from one neuron to the
+    next is accessed using:
+</p>
+<p>
+    <code>
+    {%highlight python%}
+    input_neuron.synapses_out[i].weight 
+    {%endhighlight%}
+    </code>
+</p>
+and during backward propagation, the weight from the previous neuron to the current is accessed
+using:
+<p>
+    <code>
+    {%highlight python%}
+    output_neuron.synapses_in[i].weight
+    {%endhighlight%}
+    </code>
+</p>
+
+<p>
+    As of now, the network can only be configured with fully connected layers; a great next step
+    would be to implement a way to configure dropout, convolution, and pooling layers.
+</p>
+<h3>
+    Forward Propagation
+</h3>
+<p>
+    With neurons and synapses defined this way, forward propagation becomes a bit clearer.
+</p>
+<i>More coming soon!</i>

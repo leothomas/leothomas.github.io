@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>
+    Back-propagation and gradient descent from scratch - Leo Thomas
+    
+  </title>
+
+  <meta name="description" content="While trying to learn more about neural networks, I had trouble understanding back-propagation and gradient descent, because most online articles tend to exp...">
+
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="/assets/vendor/fontawesome-free/css/all.min.css">
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://localhost:4000/2020/05/01/neural-networks.html">
+  <link rel="alternate" type="application/rss+xml" title="Leo Thomas" href="/feed.xml">
+
+</head>
+
+
+<body>
+
+  <!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+  <div class="container">
+    <a class="navbar-brand" href="/">Leo Thomas</a>
+    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      Menu
+      <i class="fa fa-bars"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/about">About</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/posts">Posts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/contact">Contact</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+  <!-- Page Header -->
+
+<header class="masthead" style="background-image: url('/img/posts/bg-posts.jpg')">
+  
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+          <div class="post-heading">
+            <h1>Back-propagation and gradient descent from scratch</h1>
+            
+            <h2 class="subheading">An attempt at better understanding Neural Networks</h2>
+            
+            <span class="meta">Posted by
+              <a href="#"></a>
+              on May 01, 2020 &middot; <span class="reading-time" title="Estimated read time">
+  
+   7 mins  read </span>
+
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+
+        <p>
+    While trying to learn more about neural networks, I had trouble understanding back-propagation
+    and gradient descent, because most online articles tend to explain the matrix operations that
+    implement these concepts rather than the conepts themselves. While matrix operations are indeed
+    the most effective implementations of back-propagation and gradient descent, they're not
+    very easy to intuitively understand. As an excrcise, I decided to implement a neural netwok
+    using Python classes in order to see how these calculations are executed at the neuron level.
+</p>
+<p>
+    I also thought it would be interesting to see just how much slower neural networks written in
+    OOP are, compared to the standard matrix approach.
+</p>
+
+<h3>Neurons and Synapses </h3>
+<p>
+    All neural networks are composed of neurons, which are organized into layers, and synapses which
+    connect the neurons from one layer to the neurons of the next:
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/neural-networks/neural-network-structure.webp"
+        alt="Basic Neural Network">
+    <span class="caption text-muted">Visual representation of a basic neural network made up of
+        neurons (circles) and synapses (arrows). The neurons labelled A,B,C, and D are part of
+        the input layer, those in red are part of the hidden layer and the neuron in green
+        is part of the output layer.
+    </span>
+</p>
+<p>
+    I defined neurons with the following attributes and methods:
+    <code>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">Neuron</span><span class="p">:</span>
+    <span class="s">""" 
+    Basic block of neural network. Takes input from the previous 
+    layer (or the input data) and provides output to the next layer 
+    (or outputs the network's prediction). Updates weights based on 
+    it's contribution to the error in the network's prediction.
+
+    ...
+
+    Attributes:
+    ----------
+    output : float 
+        Value to be used as input by the next layer neurons or as the
+        network's prediction (if in the last layer).
+
+    bias : float
+        Used to determine the neuron's output.
+        b in the equation y = mx + b, where mx is the weighted 
+        average of the previous layer neurons' outputs and y is the 
+        neuron's activation.
+
+    learning_rate : float  
+        Modulates how much bias and weights are updated by. Smaller
+        values will converge more slowly and more precisely but are
+        also more susceptible to local minima (non-optimal 
+        solutions). Start large and reduce proportionally to training
+        error (~0.1 to ~0.001).
+
+    synapses_in : [Synapse] | None
+        Pointers to the previous layer's neurons (None if the neuron
+        is part of the network's input layer).
+
+    synapses_out : [Synapse] | None
+        Pointers to the next layer's neurons (None if the neuron is
+        part of the network's output layer).
+
+    Methods :
+    -------
+    activate(network_input: float | None) -&gt; None
+        Calculates the weighted average of the previous layer's 
+        neurons plus its own bias (y = mx + b).
+
+    transfer(x : float) -&gt; float
+        Restricts the neuron's activation, calculated above, to the 
+        range [0,1].
+
+    calculate_error(expected: float | None) -&gt; None
+        Calculates contribution from this neuron to the error in the 
+        network's prediction.
+
+    transfer_derivative(x : float) -&gt; float
+        Derivative of the function used to restriction the activation
+        to [0,1]. Used to calculate the neuron's contribution to the 
+        network's error.
+
+    update_weights() -&gt; None
+        Updates the weights and biases of this neuron according to 
+        its error contribution calculated above.
+    """</span>     
+        </code></pre></figure>
+</code>
+</p>
+<p>
+    My initial approach to connecting the neurons was to use a doubly-linked list structure, where
+    each neuron has a list of output neurons and a list of input neurons. Since the connections
+    never need to be modified, the burden of swapping pointers in a doubly-linked list is not a
+    concern.
+</p>
+<p>
+    However each connection between two neurons is assigned a weight, which needs to be
+    accessed both from the input neuron (during forward propagation) and the output neuron (during
+    backwards propagation). The doubly-linked list structure would have forced me to keep track of
+    these weights in both the input neuron and the output neuron.
+</p>
+<p>
+    Updating a weight would have required accessing it in both the input neuron and the output
+    neuron. Considering the large quantity of weight update events that occur when training the
+    network, this approach would have been both computationally intensive and more error prone, in
+    addition to making the code harder to maintain.
+</p>
+<p>
+
+    In order to avoid these issues, I created a separate class for synapses, defined as follows:
+</p>
+<p>
+    <code>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">class</span> <span class="nc">Synapse</span><span class="p">:</span>
+    <span class="s">"""
+    Connector between two neurons of different layers
+    ... 
+    
+    Attributes:
+    -----------
+    neuron_in: Neuron 
+        Neuron feeding input into this synapse.
+    neuron_out: Neuron
+        Neuron which receives input from this synapse.
+    weight: float
+        Weight of the synapse. Modulates how much of the input into 
+        the synapse is passed on to the output neuron.
+    """</span>
+    <span class="p">...</span>
+    </code></pre></figure>
+</code>
+</p>
+<p>
+    I built the network by instantiating layers of neurons, and connecting each neuron within one
+    layer to all the neurons of the next layer:
+</p>
+<p>
+    <code>
+<figure class="highlight"><pre><code class="language-python" data-lang="python"><span class="k">for</span> <span class="n">neuron</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">__layers</span><span class="p">[</span><span class="n">layer_index</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">target_neuron</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">.</span><span class="n">__layers</span><span class="p">[</span><span class="n">layer_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]:</span>
+
+        <span class="n">synapse</span> <span class="o">=</span> <span class="n">Synapse</span><span class="p">(</span>
+            <span class="n">neuron_in</span><span class="o">=</span><span class="n">neuron</span><span class="p">,</span>
+            <span class="n">neuron_out</span><span class="o">=</span><span class="n">target_neuron</span>
+        <span class="p">)</span>
+
+        <span class="n">neuron</span><span class="p">.</span><span class="n">synapses_out</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">synapse</span><span class="p">)</span>
+        <span class="n">target_neuron</span><span class="p">.</span><span class="n">synapses_in</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">synapse</span><span class="p">)</span></code></pre></figure>
+    </code>
+</p>
+<p>
+    The synapse is added to both the output synapses of the input neuron and the input synapses
+    of the output neuron. This way, during forward propagation, the weight from one neuron to the
+    next is accessed using:
+</p>
+<p>
+    <code>
+    <figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">input_neuron</span><span class="p">.</span><span class="n">synapses_out</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">weight</span> 
+    </code></pre></figure>
+    </code>
+</p>
+and during backward propagation, the weight from the previous neuron to the current is accessed
+using:
+<p>
+    <code>
+    <figure class="highlight"><pre><code class="language-python" data-lang="python">    <span class="n">output_neuron</span><span class="p">.</span><span class="n">synapses_in</span><span class="p">[</span><span class="n">i</span><span class="p">].</span><span class="n">weight</span>
+    </code></pre></figure>
+    </code>
+</p>
+
+<p>
+    As of now, the network can only be configured with fully connected layers; a great next step
+    would be to implement a way to configure dropout, convolution, and pooling layers.
+</p>
+<h3>
+    Forward Propagation
+</h3>
+<p>
+    With neurons and synapses defined this way, forward propagation becomes a bit clearer.
+</p>
+<i>More coming soon!</i>
+
+        <hr>
+
+        <div class="clearfix">
+
+          
+          
+          <a class="btn btn-primary float-right" href="/2020/05/01/quantum-computing.html" data-toggle="tooltip" data-placement="top" title="Clean Qubits and Dirty Channels">Next<span class="d-none d-md-inline">
+              Post</span> &rarr;</a>
+          
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Footer -->
+
+<hr>
+
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        <ul class="list-inline text-center">
+          
+          <li class="list-inline-item">
+            <a href="mailto:leo_thomas101@yahoo.com">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="far fa-envelope fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+          
+          
+          
+          
+          <li class="list-inline-item">
+            <a href="https://github.com/leothomas">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="copyright text-muted">Copyright &copy;  2020</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+  <script src="/assets/vendor/jquery/jquery.min.js"></script>
+<script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/assets/vendor/startbootstrap-clean-blog/js/clean-blog.min.js"></script>
+
+<script src="/assets/scripts.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id="></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '');
+</script>
+
+
+
+</body>
+
+</html>

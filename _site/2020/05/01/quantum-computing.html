@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <title>
+    Clean Qubits and Dirty Channels - Leo Thomas
+    
+  </title>
+
+  <meta name="description" content="">
+
+  <link href='https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
+
+  <link rel="stylesheet" href="/assets/vendor/fontawesome-free/css/all.min.css">
+
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="canonical" href="http://localhost:4000/2020/05/01/quantum-computing.html">
+  <link rel="alternate" type="application/rss+xml" title="Leo Thomas" href="/feed.xml">
+
+</head>
+
+
+<body>
+
+  <!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+  <div class="container">
+    <a class="navbar-brand" href="/">Leo Thomas</a>
+    <button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      Menu
+      <i class="fa fa-bars"></i>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/about">About</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/posts">Posts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/contact">Contact</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+
+  <!-- Page Header -->
+
+<header class="masthead" style="background-image: url('/img/posts/bg-posts.jpg')">
+  
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-md-10 mx-auto">
+          <div class="post-heading">
+            <h1>Clean Qubits and Dirty Channels</h1>
+            
+            <h2 class="subheading">A research project in Quantum Computing</h2>
+            
+            <span class="meta">Posted by
+              <a href="#"></a>
+              on May 01, 2020 &middot; <span class="reading-time" title="Estimated read time">
+  
+   15 mins  read </span>
+
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+    type="text/javascript"></script>
+
+<p>
+    In my last year at McGill (2017), I did a research project in quantum computation with Dr.
+    Michael Hilke, head of the McGill Quantum NanoElectronic’s Laboratory. The point of the project
+    was to analyse the effect of random disorder on qubit entanglement.
+</p>
+<p>
+    Before getting into the simulation itself, I want to briefly go over a couple important concepts
+    in quantum computing: <strong>superposition</strong> and <strong>entanglement</strong>. (If
+    you're already familiar with these, feel free to skip ahead!)
+</p>
+<h5>
+    Superposition:
+</h5>
+<p>
+    Superposition is the idea that a quantum particle can exist in multiple states at the same time.
+</p>
+<p>
+    In a regular computer, the most basic unit of information - called a bit - can be in one of two
+    states: 0 or 1.
+</p>
+<p>
+    In a quantum computer, the most basic unit of information - called a qubit - is a particle in a
+    quantum state, that can be described as a linear combination of the two basic states:
+    |&nbsp;0&nbsp;&#8250; and |&nbsp;1&nbsp;&#8250;.
+</p>
+<p>
+    The "&nbsp;|&nbsp;&#8250;&nbsp" notation is a mathematical notation used to describe quantum
+    states, called
+    <a href="https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation">
+        BraKet notation - or Dirac Notation
+    </a>. |&nbsp;0&nbsp;&#8250; indicates a quantum state that would collapse to the
+    classical state 0 if it were measured, and |&nbsp;1&nbsp;&#8250; indicates a quantum state that
+    would collapse to the classical state 1, if it were measured.
+</p>
+<p>
+    One way to think about quantum particle states it to imagine the particle inside of a box.
+    At any given moment, the exact state of the particle cannot be precisely known without measuring
+    it. The act of measuring it causes the particle's state to collapse into a classical state (0 or
+    1). Without measuring the particle's state, the only thing that <strong>can</strong> be known
+    precisely is the <strong>probability</strong> of the particle collapsing into one state or the
+    other, if were measured at that moment. (This is the concept explained by the
+    Schrödinger's cat analogy: a cat is in a box with a radioactive source; since we cannot know
+    whether the cat is dead or alive at any given moment, the act of opening the box amounts to
+    killing - or saving - the cat.)
+</p>
+
+<p>
+    The linear combination, or superposition, of states that describes the state of a quantum
+    particle can be represented mathematically as:
+</p>
+<p>
+    |&nbsp;&#968;&nbsp;&#8250;&nbsp;=&nbsp;&#945;&nbsp;|&nbsp;0&nbsp;&#8250;&nbsp;+&nbsp;&#946;&nbsp;|&nbsp;1&nbsp;&#8250;&nbsp;,
+    where &#945; and &#946; are complex numbers.
+
+</p>
+<p>
+    If the qubit were measured, it would be found in state |&nbsp;0&nbsp;&#8250; with probability
+    |&#945;|&#0178; and in state |&nbsp;1&nbsp;&#8250; with probability |&#946;|&#0178;. The
+    probability of finding a qubit in one state or another, if it were measured at that moment, is
+    called the qubit's expectation value.
+</p>
+
+<p>
+    Here's a graph from my simulation of the expectation value of a single qubit, as it evolves over
+    time.
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/quantum-computing/expectation_values_single.jpg"
+        alt="Qubit Evolution Expectation values">
+    <span class="caption text-muted">Expectation values of a qubit. Note that as the probability of
+        it being measured in one state goes to 1.0 the probability of it being measured in the
+        other state goes to 0. </span>
+</p>
+
+<p>
+    In summary, where a classical bit can map to one of 2 values, superposition allows a qubit
+    to exist as an infite number of values (as long as it is not measured). You can think of a
+    bit as a light switch and a qubit as pointing to anywhere on surface of a sphere:
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/quantum-computing/bit-vs-qubit.png" alt="Bit vs Qubit">
+    <span class="caption text-muted">A visual representation of the possible values of bits and
+        qubits</span>
+</p>
+<p>
+    <h5>
+        Entanglement:
+    </h5>
+
+    When two qubits are entangled, the state of one qubit affects the sate of another qubit,
+    regardless of where the qubits are or how far appart they are.
+</p>
+<p>
+    To illustrate, take two qubits entangled in an equal superposition, meaning either both are in
+    the |&nbsp;0&nbsp;&#8250; state or both are in the |&nbsp;1&nbsp;&#8250; state -
+    denoted |&nbsp;00&nbsp;&#8250; and |&nbsp;11&nbsp;&#8250;, respectively. The state of this
+    system of qubits is mathematically represented as: <br />
+</p>
+<p>
+    | &#968; &#8250; = <sup>1</sup>/<sub>&#8730;2</sub> ( |&nbsp;00&nbsp;&#8250; +
+    |&nbsp;11&nbsp;&#8250; )
+</p>
+<p>
+    In this case the states |&nbsp;00&nbsp;&#8250; and |&nbsp;11&nbsp;&#8250; are equally probable
+    (( <sup>1</sup>/<sub>&#8730;2</sub>)&#0178; = 0.5, the system has a 50% chance of being
+    chance of being found in either state).
+
+</p>
+<p>
+    If one qubit is found to be in the |&nbsp;0&nbsp;&#8250; state then the other must
+    <strong>necessarily</strong> be in the |&nbsp;0&nbsp;&#8250; state and if one is found to be in
+    the |&nbsp;1&nbsp;&#8250; state then the other must be in the |&nbsp;1&nbsp;&#8250; state (since
+    the only two possible states of the entagled system are |&nbsp;00&nbsp;&#8250; and
+    |&nbsp;11&nbsp;&#8250;&nbsp;). Incredibly, this is true <strong>regardless</strong> of where the
+    qubits are and how far apart they are from each other!
+</p>
+<p>
+    Entaglement is crucial to "quantum 2.0" technologies that use qubit entanglement to improve the
+    precision of their measurements. These technologies include improved atomic clocks that keep
+    time with an order of magnitude more precision than current leading clocks, as well as electron
+    microscopes and satellites.
+</p>
+<p>
+    In the case of quantum computers, qubits must be entangled through a channel, such as a proton
+    beam or or fiber optic cable. These channels are prone to disorder, which is almost always
+    detrimental to the information transfer between the entangled particles. Electromagnetic signals
+    from nearby machinery and background radiation are two common culprits. These kinds of disorder
+    are called dynamic, or time dependent, and can be modeled mathematically. They are well studied,
+    and correction schemes have been developed to mitigate their effects.
+
+</p>
+<p>
+    My project was concerned with non-time dependent disorder, or static disorder, such as
+    impurities in the air or in a fiber optic cable. Due to their highly random nature, these kinds
+    of disorder cannot be modeled mathematically, and are much harder to account for. The goal of my
+    project was to develop a python simulation of entangled particles to quantify how their
+    information transfer was affected when random disorder is introduced to the entanglement
+    channel.
+</p>
+
+<h3>The simulation</h3>
+<p>
+    The simulation starts with the famous Schrödinger equation, which describes the states of
+    quantum systems. If you are interested in a slightly more in-depth explanation of the quantum
+    theory behind the simulation, please feel free to check out the
+    <strong> <a href="https://drive.google.com/file/d/1V2eJxy9jgibWXy9N4vlC5e-BQ0p_6JU2/view">
+            paper</a></strong> itself!
+</p>
+<p>
+    For the simulation, we use a mathmatical operator called a Hamiltonian (\(\hat{H}\)), to
+    represent the quantum particle:
+    $$\hat{H} = \begin{bmatrix}
+    \varepsilon_{up} && \tau \\
+    \tau^* && \varepsilon_{down}
+    \end{bmatrix}$$
+    (\(\varepsilon_{up}\), \(\varepsilon_{down}\) have to do with the energy of the quantum
+    particle, and vary between 0 and 1, and \(\tau\) is not very important within the scope of this
+    post)
+</p>
+<p>
+    The Hamiltonian operator makes it straightforward to mathematically represent the particles as
+    they become entangled, by using an operation called the Kronecker product (\(\otimes\)). The
+    Kronecker product simply multiplies each element of the first matrix by the entire second
+    matrix:
+    $$\begin{bmatrix}
+    a_{11} & a_{12} \\
+    a_{11} & a_{22} \\
+    \end{bmatrix}
+    \otimes
+    \begin{bmatrix}
+    b_{11} & b_{12} \\
+    b_{11} & b_{22} \\
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    a_{11} {\begin{bmatrix}
+    b_{11} & b_{12} \\
+    b_{11} & b_{22} \\
+    \end{bmatrix}} & a_{12} {\begin{bmatrix}
+    b_{11} & b_{12} \\
+    b_{11} & b_{22} \\
+    \end{bmatrix}} \\
+    a_{21} {\begin{bmatrix}
+    b_{11} & b_{12} \\
+    b_{11} & b_{22} \\
+    \end{bmatrix}} & a_{22} {\begin{bmatrix}
+    b_{11} & b_{12} \\
+    b_{11} & b_{22} \\
+    \end{bmatrix}} \\
+    \end{bmatrix}$$
+</p>
+
+<p>
+    In order to represent two entangled qubits - let's call them A and B - we calculate:
+    $$ \hat{H}_A \otimes \hat{H}_B $$
+
+</p>
+<p>
+    In order to represent qubit entangled through a channel, we simply construct a chain
+    of entangled quantum particles. We Kronecker product to entangle each qubit to the
+    next and then consider the ones on either extremity to be the entangled particles we want to
+    study, and the rest to be part of the channel.
+</p>
+<p>
+    Once we have a mathematical representation of the qubits entangled through a channel, we add
+    some random disturbance to the entanglement channel and see how the qubits on either end act
+    differently from when there is no energy in the channel.
+</p>
+<p>
+    The Hamiltonian operator that represents the qubits and their entanglement channel is used to
+    find a solution to the Schrödinger equation (using a propagator known as the
+    <a href="https://sites.math.washington.edu/~morrow/336_11/papers/jeff.pdf"> Green function</a>).
+    This solution is energy dependent, meaning it defines state of the system with
+    respect to the particles' energy. In order to describe the system's state as it
+    evolves over time we use an operation known as a
+    <a href="https://en.wikipedia.org/wiki/Fourier_transform">Fourier Transform</a> to describe the
+    system's state as it evolves over time. The result of this transform is the expectation values
+    of two entangled qubits time:
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/quantum-computing/coupled-qubits-expectation-values.jpg"
+        alt="Expectation values of Entangled Qubits">
+    <span class="caption text-muted">Time evolution of the expectation values of two entangled
+        qubits
+    </span>
+</p>
+<p>
+    Notice that each qubit's expectation values oscilate between 0 and 1.0, at a different rate.
+    These oscillations will come in and out of phase and at certain times, will be anti-phased (one
+    qubit's expectation value reaches 1.0 at the same time as the other reaches 0). When the
+    expectation values are anti-phased their oscillations become restricted, as we see around
+    time t=25. If the particles were not entangled, their expectation values would simultaneously
+    reach 100% probability of being found in opposite states (|&nbsp;10&nbsp;&#8250; or
+    |&nbsp;01&nbsp;&#8250;). However, since such states are prohibited by the entanglement, the
+    expectation values of both qubits are restricted to 0.5 around time t=25. The expectation values
+    recover their full oscillation as the system comes out of this anti-phased state, and the
+    expectation values no longer simultaneously reach 100% probability of being found
+    in opposite states.
+</p>
+<h3>Results</h3>
+<p>
+    In this project, I tackled the question: how does static disorder in quantum entanglement
+    channels
+    affect information transfer between qubits? The answer: it does.
+</p>
+<p>
+    The graph below shows the average difference between the expectation values of qubits entangled
+    through a disordered channel and those of a non-entangled qubit, at different disorder ranges
+    (eg: a disorder range of 0.25 means the qubits forming the entanglement channel have been
+    assigned random energy values between -0.25 and 0.25). We notice that as that disorder range
+    increases, the qubit behaves less and less like an entangled qubit and more like an isolated
+    qubit.
+</p>
+<p>
+    <img class="img-fluid" src="/img/posts/quantum-computing/average_difference_entangled.jpeg"
+        alt="Average Difference">
+    <span class="caption text-muted">The average difference of qubit expectation values over 31
+        trials. Notice a sharp drop off at the disorder range value 0.5 (marked with a red line).
+        This is likely due to the fact that at that point disorder range (-0.5 to 0.5) exceeds the
+        channel width (1.0), and starts blocksing the qubits from communicating effectively,
+        eventually leading to a system where the qubits are almost entorely isolated (at disorder
+        range 1.5)
+    </span>
+</p>
+
+<p>
+    While this may seem like a rather underwhelming result because it's exactly what we would
+    intuitively expect, this project created and validated a framework for modeling the
+    behaviours of entangled quantum particles. This kind of framework can be very useful in many
+    other quantum computing research applications.
+</p>
+<p>
+    Secondly, we can't begin to quantify the effect of disorder on quantum systems if we have not
+    proved that it does affect the system in the first place. Simulations like these are much
+    cheaper and easier to run than physical experiments involving quantum particles, and are a great
+    starting point for further research.
+</p>
+<p>
+    In the case of this project a great next step would to be find other metrics to quantify the
+    difference in behaviour between the entangled qubit and the isolated qubit, other than just the
+    difference in their expectation values. Another good subject to further research would be the
+    rate of decoupling in quantum systems with large disorder values.
+</p>
+<h3>Conclusion</h3>
+<p>
+    My experience with quantum computing was incredibly rewarding (albeit stressful due to time
+    constraints). I was very proud to achieve some results, as basic and obvious as they may have
+    beenm, they were correct and valid! Ever since I have been fascinated with the idea of modeling
+    the world around us.
+</p>
+<p>
+    Thanks for reading! Please feel free to check out the
+    <strong>
+        <a href="https://drive.google.com/file/d/1V2eJxy9jgibWXy9N4vlC5e-BQ0p_6JU2/view">paper</a>
+    </strong>
+    for more info on the simulation and the physics involves! If you have any comments, questions or
+    suggestions regarding this post, please <a href="/contact.html"> get in touch</a>!
+</p>
+
+        <hr>
+
+        <div class="clearfix">
+
+          
+          <a class="btn btn-primary float-left" href="/2020/05/01/neural-networks.html" data-toggle="tooltip" data-placement="top" title="Back-propagation and gradient descent from scratch">&larr; Previous<span class="d-none d-md-inline">
+              Post</span></a>
+          
+          
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Footer -->
+
+<hr>
+
+<footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        <ul class="list-inline text-center">
+          
+          <li class="list-inline-item">
+            <a href="mailto:leo_thomas101@yahoo.com">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="far fa-envelope fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+          
+          
+          
+          
+          <li class="list-inline-item">
+            <a href="https://github.com/leothomas">
+              <span class="fa-stack fa-lg">
+                <i class="fas fa-circle fa-stack-2x"></i>
+                <i class="fab fa-github fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="copyright text-muted">Copyright &copy;  2020</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+  <script src="/assets/vendor/jquery/jquery.min.js"></script>
+<script src="/assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/assets/vendor/startbootstrap-clean-blog/js/clean-blog.min.js"></script>
+
+<script src="/assets/scripts.js"></script>
+
+
+
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id="></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '');
+</script>
+
+
+
+</body>
+
+</html>
